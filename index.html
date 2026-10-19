@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#171c18"><meta name="description" content="Blackstart: a reserve-aware portable battery planner and working MCP demonstration for the Alexa+ hackathon track."><title>Blackstart — know your power runway</title><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="/" aria-label="Blackstart home"><span class="brandmark">ϟ</span> BLACKSTART<span class="version">/ 01</span></a><div class="topright"><span class="status" id="connection"><i></i> CONNECTING</span><button class="textbtn" id="reset">Reset rehearsal ↺</button></div></header>
+<main>
+  <section class="intro"><div><p class="eyebrow">POWER OUTAGE REHEARSAL · BUILT FOR RENTERS</p><h1>Keep the essentials.<br><span>Know the limit.</span></h1><p class="subtitle">Your battery has a number on the box.<br>Here's what that number can actually keep running.</p></div><div class="intro-meta"><span class="stamp">ALEXA+ TRACK</span><p>A working MCP server.<br>A simulated conversational experience.</p><span class="tiny">Sample apartment · editable assumptions</span></div></section>
+  <div id="error" class="error" role="alert" hidden></div>
+  <div class="workspace">
+    <aside class="setup">
+      <div class="section-label"><span>01 / YOUR POWER</span><span class="tiny">AC battery output</span></div>
+      <div class="battery-top"><div class="battery-art"><div id="battery-fill"></div></div><div><strong id="charge-title">80%</strong><span>starting charge</span></div></div>
+      <div class="formgrid">
+        <label>Capacity <span>Wh</span><input id="capacityWh" type="number" min="1" max="100000" value="1536" step="1"></label>
+        <label>Starting charge <span>%</span><input id="chargePct" type="number" min="0" max="100" value="80" step="1"></label>
+        <label>Keep in reserve <span>%</span><input id="reservePct" type="number" min="0" max="100" value="15" step="1"></label>
+        <label>Outage target <span>hours</span><input id="horizonHours" type="number" min="0.25" max="72" value="8" step="0.25"></label>
+      </div>
+      <details class="advanced"><summary>Conversion & inverter ratings <span>+</span></summary><div class="formgrid"><label>Efficiency <span>%</span><input id="efficiencyPct" type="number" min="1" max="100" value="88"></label><label>Idle overhead <span>W, AC equiv.</span><input id="idleWatts" type="number" min="0" max="500" value="8"></label><label>Continuous limit <span>W</span><input id="continuousWatts" type="number" min="1" max="30000" value="1500"></label><label>Surge limit <span>W</span><input id="surgeWatts" type="number" min="1" max="60000" value="2500"></label></div></details>
+      <div class="divider"></div>
+      <div class="section-label"><span>02 / YOUR APPLIANCES</span><button class="textbtn" id="add-load">+ Add</button></div>
+      <p class="small muted">Protect the loads you won't trade away. Tap an appliance to edit its assumptions.</p><div id="loads"></div>
+      <p class="small footnote">All device values are illustrative. Replace them with measured usage and manufacturer ratings.</p>
+    </aside>
+    <section class="results" aria-label="Power plan">
+      <div class="plan-card" id="plan-card" aria-live="polite">
+        <div class="section-label"><span>03 / YOUR POWER RUNWAY</span><span class="tag" id="plan-status">CALCULATING</span></div>
+        <div class="runway-row"><div><span class="metric-label">Recommended selection · high-use case</span><div class="bigmetric"><span id="runway">—</span><span class="unit">hrs</span></div><p id="runway-caption" class="muted small">Until your chosen reserve</p></div><div class="compare-metric"><span class="metric-label">All selected appliances</span><strong><span id="baseline-hours">—</span> <span>hrs</span></strong><span class="small muted" id="baseline-delta">Checking energy and power</span></div></div>
+        <div class="chart-title"><strong>One battery. Two very different nights.</strong><span class="small muted">Remaining charge, %</span></div>
+        <svg id="chart" viewBox="0 0 740 214" role="img" aria-label="Battery discharge projection comparing all selected loads with the recommended plan"></svg>
+        <div class="legend"><span><i class="dash"></i>All selected loads</span><span><i class="line"></i>Recommended, high use</span><span><i class="band"></i>Typical-to-high-use range</span><span><i class="reserve"></i>Reserve</span></div>
+        <div class="statsstrip"><div><span>Usable after reserve + losses</span><strong id="usable">—</strong></div><div><span>High-use plan draw</span><strong id="draw">—</strong></div><div><span>Margin at target</span><strong id="margin">—</strong></div></div>
+      </div>
+      <div class="conversation-card"><div class="section-label"><span><span class="orange-dot"></span> ASK BLACKSTART</span><span class="tiny">TEXT SIMULATOR · RULE-BASED INTENTS</span></div><p class="answer" id="answer" aria-live="polite">Connecting to the local MCP server…</p><div class="chips"><button data-prompt="Make it 12 hours">What if it lasts 12 hours? ↗</button><button data-prompt="Battery is at 60%">Battery is at 60% ↗</button><button data-prompt="Can I add a kettle?">Can I add a kettle? ↗</button><button data-prompt="Explain the math">Show me the math ↗</button></div><form id="ask-form"><label class="sr-only" for="question">Ask a follow-up</label><input id="question" autocomplete="off" placeholder='Try “make it 6 hours” or “why this plan?”' maxlength="240"><button type="submit" aria-label="Ask Blackstart">↑</button></form><div class="conversation-footer"><span id="tool-caption">Real MCP calls · no model or API key required</span><button class="textbtn" id="speak">Read answer aloud ◖))</button></div></div>
+      <div class="detail-grid"><section class="detail-card"><div class="section-label"><span>KEEP / DEFER</span><button class="textbtn" id="apply-plan">Use this selection</button></div><div id="recommendation"></div></section><section class="detail-card"><div class="section-label"><span>THE PHYSICAL LIMITS</span><span class="tiny">PLAN SELECTION</span></div><div id="checks"></div><p class="small muted">Startup assumes simultaneous starts. Passing these checks is conditional on the ratings you provide.</p></section></div>
+      <details class="evidence"><summary>Open the calculation receipt <span>↗</span></summary><div id="receipt"></div><button class="secondary" id="export">Download plan receipt</button></details>
+      <details class="evidence"><summary>Assumptions & limitations <span>+</span></summary><div id="assumptions"></div></details>
+      <details class="evidence"><summary>Developer view · live MCP tool trace <span>+</span></summary><p class="small muted">The simulator calls the same discoverable MCP tools an agent can use. It is not connected to an Alexa device or an Amazon preview API.</p><pre id="trace"></pre></details>
+    </section>
+  </div>
+  <footer><strong>BLACKSTART</strong><span>Rehearse before an outage. Alexa and internet service may be unavailable during one.</span><span>Made by Liam Stutz · 2026</span></footer>
+</main>
+<dialog id="load-dialog"><form id="load-form"><div class="section-label"><span>APPLIANCE ASSUMPTIONS</span><button type="button" class="textbtn" id="close-dialog">Close ×</button></div><h2 id="edit-heading">Edit appliance</h2><input type="hidden" id="load-id"><label>Appliance name<input id="load-name" required maxlength="80"></label><div class="formgrid"><label>Running power <span>W</span><input id="load-watts" type="number" min="0" max="30000" required></label><label>Startup demand <span>W</span><input id="load-startupWatts" type="number" min="0" max="60000" required></label><label>Typical duty cycle <span>%</span><input id="load-dutyPct" type="number" min="0" max="100" required></label><label>High-use duty cycle <span>%</span><input id="load-highDutyPct" type="number" min="0" max="100" required></label><label>Optional priority <span>5 = highest</span><input id="load-priority" type="number" min="1" max="5" required></label></div><label class="checklabel"><input type="checkbox" id="load-essential"> Protect this load from automatic removal</label><p class="small muted">Duty cycle is the fraction of time an appliance draws its running power. A compressor's average draw is different from its startup demand.</p><p id="load-error" role="alert" class="orange"></p><button class="primary" type="submit">Save appliance</button></form></dialog>
+<script type="module" src="/app.js"></script></body></html>

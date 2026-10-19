@@ -1,0 +1,10 @@
+{
+  "name": "blackstart",
+  "version": "1.0.0",
+  "description": "A voice-oriented, uncertainty-aware portable battery planner and MCP server for outage rehearsals.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node server.mjs", "test": "node --test" },
+  "license": "MIT"
+}

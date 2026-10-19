@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createServer} from './server.mjs';
+let server,url;
+test.before(async()=>{server=createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));url=`http://127.0.0.1:${server.address().port}/mcp`;});
+test.after(()=>new Promise(resolve=>server.close(resolve)));
+const headers={'Content-Type':'application/json',Accept:'application/json, text/event-stream','MCP-Protocol-Version':'2025-11-25'};
+const request=(method,params={},extra={})=>fetch(url,{method:'POST',headers:{...headers,...extra},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
+test('initialize, discover and execute real MCP tools end-to-end',async()=>{
+  let r=await(await request('initialize',{protocolVersion:'2025-11-25',capabilities:{},clientInfo:{name:'test',version:'1'}})).json();
+  assert.equal(r.result.protocolVersion,'2025-11-25');assert.ok(r.result.capabilities.tools);
+  r=await(await request('tools/list')).json();assert.equal(r.result.tools.length,3);assert.ok(r.result.tools.every(t=>t.annotations.readOnlyHint));
+  r=await(await request('tools/call',{name:'get_outage_example',arguments:{}})).json();const sample=r.result.structuredContent;
+  r=await(await request('tools/call',{name:'plan_backup_power',arguments:sample})).json();assert.equal(r.result.structuredContent.feasible,true);assert.equal(r.result.isError,false);
+  r=await(await request('tools/call',{name:'compare_outage_plan',arguments:{input:sample,change:{horizonHours:12}}})).json();assert.equal(r.result.structuredContent.after.feasible,false);
+});
+test('tool argument failures are explicit MCP tool errors',async()=>{const r=await(await request('tools/call',{name:'plan_backup_power',arguments:{}})).json();assert.equal(r.result.isError,true);});
+test('unknown method and tool fail without successful results',async()=>{const r=await(await request('not-a-method')).json();assert.equal(r.error.code,-32601);const t=await(await request('tools/call',{name:'not-a-tool'})).json();assert.equal(t.error.code,-32602);});
+test('cross-origin requests are blocked',async()=>{const r=await request('tools/list',{}, {Origin:'https://untrusted.example'});assert.equal(r.status,403);});
+test('unsupported protocol version is rejected',async()=>{const r=await request('tools/list',{}, {'MCP-Protocol-Version':'1900-01-01'});assert.equal(r.status,400);});
+test('notification returns 202 with no body',async()=>{const r=await fetch(url,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'})});assert.equal(r.status,202);assert.equal(await r.text(),'');});
+test('GET is correctly unsupported on stateless JSON transport',async()=>{const r=await fetch(url);assert.equal(r.status,405);});
+test('malformed JSON returns parse error',async()=>{const r=await fetch(url,{method:'POST',headers,body:'{'});assert.equal(r.status,400);assert.equal((await r.json()).error.code,-32700);});
+test('client must accept both MCP response media types',async()=>{const r=await request('tools/list',{}, {Accept:'application/json'});assert.equal(r.status,406);});
+test('static app, CSP and asset routing are accessible without revealing source',async()=>{const base=url.slice(0,-4);const r=await fetch(base);assert.equal(r.status,200);assert.ok(r.headers.get('content-security-policy'));assert.match(await r.text(),/Keep the essentials/);assert.equal((await fetch(base+'/server.mjs')).status,404);});
